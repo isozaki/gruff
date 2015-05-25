@@ -6,34 +6,34 @@ require File.dirname(__FILE__) + '/base'
 # g.data(:apples, [1,2,3,4], [4,3,2,1])
 # g.data('oranges', [5,7,8], [4,1,7])
 # g.write('test/output/scatter.png')
-# 
+#
 #
 class Gruff::Scatter < Gruff::Base
 
   # Maximum X Value. The value will get overwritten by the max in the
-  # datasets.  
+  # datasets.
   attr_accessor :maximum_x_value
-  
-  # Minimum X Value. The value will get overwritten by the min in the 
-  # datasets.  
+
+  # Minimum X Value. The value will get overwritten by the min in the
+  # datasets.
   attr_accessor :minimum_x_value
-  
+
   # The number of vertical lines shown for reference
   attr_accessor :marker_x_count
-  
+
   #~ # Draw a dashed horizontal line at the given y value
   #~ attr_accessor :baseline_y_value
-	
+
   #~ # Color of the horizontal baseline
   #~ attr_accessor :baseline_y_color
-  
+
   #~ # Draw a dashed horizontal line at the given y value
   #~ attr_accessor :baseline_x_value
-	
+
   #~ # Color of the horizontal baseline
   #~ attr_accessor :baseline_x_color
-  
-  
+
+
   # Gruff::Scatter takes the same parameters as the Gruff::Line graph
   #
   # ==== Example
@@ -42,7 +42,7 @@ class Gruff::Scatter < Gruff::Base
   #
   def initialize(*args)
     super(*args)
-    
+
     @maximum_x_value = @minimum_x_value = nil
     @baseline_x_color = @baseline_y_color = 'red'
     @baseline_x_value = @baseline_y_value = nil
@@ -64,7 +64,7 @@ class Gruff::Scatter < Gruff::Base
     super
     return unless @has_data
 
-    # Check to see if more than one datapoint was given. NaN can result otherwise.  
+    # Check to see if more than one datapoint was given. NaN can result otherwise.
     @x_increment = (@column_count > 1) ? (@graph_width / (@column_count - 1).to_f) : @graph_width
 
     #~ if (defined?(@norm_y_baseline)) then
@@ -79,13 +79,13 @@ class Gruff::Scatter < Gruff::Base
     #~ end
 
     #~ if (defined?(@norm_x_baseline)) then
-      
+
     #~ end
 
-    @norm_data.each do |data_row|      
+    @norm_data.each do |data_row|
       data_row[DATA_VALUES_INDEX].each_with_index do |data_point, index|
         x_value = data_row[DATA_VALUES_X_INDEX][index]
-        next if data_point.nil? || x_value.nil? 
+        next if data_point.nil? || x_value.nil?
 
         new_x = get_x_coord(x_value, @graph_width, @graph_left)
         new_y = @graph_top + (@graph_height - data_point * @graph_height)
@@ -103,7 +103,7 @@ class Gruff::Scatter < Gruff::Base
 
     @d.draw(@base_image)
   end
-  
+
   # The first parameter is the name of the dataset.  The next two are the
   # x and y axis data points contain in their own array in that respective
   # order.  The final parameter is the color.
@@ -119,8 +119,8 @@ class Gruff::Scatter < Gruff::Base
   #
   # ==== Parameters
   # name:: String or Symbol containing the name of the dataset.
-  # x_data_points:: An Array of of x-axis data points. 
-  # y_data_points:: An Array of of y-axis data points. 
+  # x_data_points:: An Array of of x-axis data points.
+  # y_data_points:: An Array of of y-axis data points.
   # color:: The hex string for the color of the dataset.  Defaults to nil.
   #
   # ==== Exceptions
@@ -142,50 +142,50 @@ class Gruff::Scatter < Gruff::Base
   # g.data('bitter_melon', [3,5,6], [6,7,8], '#000000')
   #
   def data(name, x_data_points=[], y_data_points=[], color=nil)
-    
+
     raise ArgumentError, 'Data Points contain nil Value!' if x_data_points.include?(nil) || y_data_points.include?(nil)
     raise ArgumentError, 'x_data_points is empty!' if x_data_points.empty?
     raise ArgumentError, 'y_data_points is empty!' if y_data_points.empty?
     raise ArgumentError, 'x_data_points.length != y_data_points.length!' if x_data_points.length != y_data_points.length
-    
+
     # Call the existing data routine for the y axis data
     super(name, y_data_points, color)
-    
+
     #append the x data to the last entry that was just added in the @data member
     last_elem = @data.length()-1
     @data[last_elem] << x_data_points
-    
+
     if @maximum_x_value.nil? && @minimum_x_value.nil?
       @maximum_x_value = @minimum_x_value = x_data_points.first
     end
-    
+
     @maximum_x_value = x_data_points.max > @maximum_x_value ?
                         x_data_points.max : @maximum_x_value
     @minimum_x_value = x_data_points.min < @minimum_x_value ?
                         x_data_points.min : @minimum_x_value
   end
-  
+
 protected
-  
+
   def calculate_spread #:nodoc:
     super
     @x_spread = @maximum_x_value.to_f - @minimum_x_value.to_f
     @x_spread = @x_spread > 0 ? @x_spread : 1
   end
-  
+
   def normalize(force=@xy_normalize)
-    if @norm_data.nil? || force 
+    if @norm_data.nil? || force
       @norm_data = []
       return unless @has_data
-      
+
       @data.each do |data_row|
         norm_data_points = [data_row[DATA_LABEL_INDEX]]
-        norm_data_points << data_row[DATA_VALUES_INDEX].map do |r|  
+        norm_data_points << data_row[DATA_VALUES_INDEX].map do |r|
                                 (r.to_f - @minimum_value.to_f) / @spread
                             end
         norm_data_points << data_row[DATA_COLOR_INDEX]
-        norm_data_points << data_row[DATA_VALUES_X_INDEX].map do |r|  
-                                (r.to_f - @minimum_x_value.to_f) / @x_spread 
+        norm_data_points << data_row[DATA_VALUES_X_INDEX].map do |r|
+                                (r.to_f - @minimum_x_value.to_f) / @x_spread
                             end
         @norm_data << norm_data_points
       end
@@ -193,12 +193,12 @@ protected
     #~ @norm_y_baseline = (@baseline_y_value.to_f / @maximum_value.to_f) if @baseline_y_value
     #~ @norm_x_baseline = (@baseline_x_value.to_f / @maximum_x_value.to_f) if @baseline_x_value
   end
-  
+
   def draw_line_markers
     # do all of the stuff for the horizontal lines on the y-axis
     super
     return if @hide_line_markers
-    
+
     @d = @d.stroke_antialias false
 
     if @x_axis_increment.nil?
@@ -219,7 +219,7 @@ protected
       @minimum_x_value = @minimum_x_value.floor
       calculate_spread
       normalize(true)
-      
+
       @marker_count = (@x_spread / @x_axis_increment).to_i
       @x_increment = @x_axis_increment
     end
@@ -236,7 +236,7 @@ protected
 
       unless @hide_line_numbers
         marker_label = index * @x_increment + @minimum_x_value.to_f
-        y_offset = @graph_bottom + LABEL_MARGIN 
+        y_offset = @graph_bottom + LABEL_MARGIN
         x_offset = get_x_coord(index.to_f, @increment_x_scaled, @graph_left)
 
         @d.fill = @font_color
@@ -244,21 +244,21 @@ protected
         @d.stroke('transparent')
         @d.pointsize = scale_fontsize(@marker_font_size)
         @d.gravity = NorthGravity
-        
-        @d = @d.annotate_scaled(@base_image, 
-                          1.0, 1.0, 
-                          x_offset, y_offset, 
+
+        @d = @d.annotate_scaled(@base_image,
+                          1.0, 1.0,
+                          x_offset, y_offset,
                           label(marker_label, @x_increment), @scale)
       end
     end
-    
+
     @d = @d.stroke_antialias true
   end
-  
+
 private
-  
+
   def get_x_coord(x_data_point, width, offset) #:nodoc:
     x_data_point * width + offset
   end
-  
+
 end # end Gruff::Scatter
