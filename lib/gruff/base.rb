@@ -1,5 +1,5 @@
 require 'rubygems'
-require 'RMagick'
+require 'rmagick'
 require 'bigdecimal'
 
 require File.dirname(__FILE__) + '/deprecated'
@@ -277,6 +277,8 @@ module Gruff
       @y_axis_increment = nil
       @stacked = nil
       @norm_data = nil
+
+      @vertical_label = false
     end
 
     # Sets the top, bottom, left and right margins to +margin+.
@@ -519,8 +521,14 @@ module Gruff
     # Calculates size of drawable area, general font dimensions, etc.
 
     def setup_graph_measurements
-      @marker_caps_height = @hide_line_markers ? 0 :
-          calculate_caps_height(@marker_font_size)
+      if @vertical_label
+        @marker_caps_height = calculate_width(@marker_font_size,
+                                              labels.values.inject('') { |value, memo| (value.to_s.length > memo.to_s.length) ? value : memo })
+      else
+        @marker_caps_height = @hide_line_markers ? 0 :
+            calculate_caps_height(@marker_font_size)
+      end
+
       @title_caps_height = (@hide_title || @title.nil?) ? 0 :
           calculate_caps_height(@title_font_size) * @title.lines.to_a.size
       @legend_caps_height = @hide_legend ? 0 :
@@ -571,6 +579,7 @@ module Gruff
 
       x_axis_label_height = @x_axis_label.nil? ? 0.0 :
           @marker_caps_height + LABEL_MARGIN
+
       # FIXME: Consider chart types other than bar
       @graph_bottom = @raw_rows - @graph_bottom_margin - x_axis_label_height - @label_stagger_height
       @graph_height = @graph_bottom - @graph_top
@@ -837,12 +846,14 @@ module Gruff
           else # @label_truncation_style is :absolute (default)
             label_text = label_text[0 .. (@label_max_size - 1)]
           end
-
         end
+
+        y_offset += (calculate_width(@marker_font_size, label_text) / 2) if @vertical_label
 
         if x_offset >= @graph_left && x_offset <= @graph_right
           @d.fill = @font_color
           @d.font = @font if @font
+          @d.rotation = -90 if @vertical_label
           @d.stroke('transparent')
           @d.font_weight = NormalWeight
           @d.pointsize = scale_fontsize(@marker_font_size)
@@ -851,6 +862,7 @@ module Gruff
                                   1.0, 1.0,
                                   x_offset, y_offset,
                                   label_text, @scale)
+          @d.rotation = 90 if @vertical_label
         end
         @labels_seen[index] = 1
         debug { @d.line 0.0, y_offset, @raw_columns, y_offset }
