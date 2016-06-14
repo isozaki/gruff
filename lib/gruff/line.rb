@@ -32,6 +32,11 @@ class Gruff::Line < Gruff::Base
   attr_accessor :minimum_x_value
   attr_accessor :maximum_x_value
 
+  # accessor for show value
+  attr_accessor :show_value
+  attr_accessor :value_label_x
+  attr_accessor :value_label_y
+
   # Get the value if somebody has defined it.
   def baseline_value
     if (@reference_lines.key?(:baseline))
@@ -84,6 +89,10 @@ class Gruff::Line < Gruff::Base
     @hide_dots = @hide_lines = false
     @maximum_x_value = nil
     @minimum_x_value = nil
+
+    @show_value = false
+    @value_label_x = 10.0
+    @value_label_y = 10.0
   end
 
   # This method allows one to plot a dataset with both X and Y data.
@@ -208,7 +217,7 @@ class Gruff::Line < Gruff::Base
       end
     end
 
-    @norm_data.each do |data_row|
+    @norm_data.each_with_index do |data_row, row_index|
       prev_x = prev_y = nil
 
       @one_point = contains_one_point_only?(data_row)
@@ -249,6 +258,8 @@ class Gruff::Line < Gruff::Base
           @d = @d.circle(new_x, new_y, new_x - circle_radius, new_y)
         end
         @d = @d.circle(new_x, new_y, new_x - circle_radius, new_y) unless @hide_dots
+
+        draw_value_label(new_x + @value_label_x, new_y + value_label_y, @data[row_index][DATA_VALUES_INDEX][index]) if @show_value
 
         prev_x, prev_y = new_x, new_y
       end
