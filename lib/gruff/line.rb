@@ -36,6 +36,7 @@ class Gruff::Line < Gruff::Base
   attr_accessor :show_value
   attr_accessor :value_label_x
   attr_accessor :value_label_y
+  attr_accessor :value_font_color
 
   # Get the value if somebody has defined it.
   def baseline_value
@@ -93,6 +94,7 @@ class Gruff::Line < Gruff::Base
     @show_value = false
     @value_label_x = 10.0
     @value_label_y = 10.0
+    @value_font_color = @font_color
   end
 
   # This method allows one to plot a dataset with both X and Y data.
@@ -166,7 +168,7 @@ class Gruff::Line < Gruff::Base
     @d = @d.push
     @d.stroke_color(reference_line[:color] || @reference_line_default_color)
     @d.fill_opacity 0.0
-    @d.stroke_dasharray(10, 20)
+    @d.stroke_dasharray(reference_line[:dasharray][:width], reference_line[:dasharray][:gap]) if reference_line[:dasharray]
     @d.stroke_width(reference_line[:width] || @reference_line_default_width)
     @d.line(left, top, right, bottom)
     @d = @d.pop
@@ -192,6 +194,7 @@ class Gruff::Line < Gruff::Base
 
     @reference_lines.each_value do |curr_reference_line|
       draw_horizontal_reference_line(curr_reference_line) if curr_reference_line.key?(:norm_value)
+      draw_reference_line_value_label(curr_reference_line) if @show_value
       draw_vertical_reference_line(curr_reference_line) if curr_reference_line.key?(:index)
     end
 
@@ -217,6 +220,7 @@ class Gruff::Line < Gruff::Base
       end
     end
 
+    value_label_data = []
     @norm_data.each_with_index do |data_row, row_index|
       prev_x = prev_y = nil
 
@@ -259,13 +263,23 @@ class Gruff::Line < Gruff::Base
         end
         @d = @d.circle(new_x, new_y, new_x - circle_radius, new_y) unless @hide_dots
 
-        draw_value_label(new_x + @value_label_x, new_y + value_label_y, @data[row_index][DATA_VALUES_INDEX][index]) if @show_value
+        if  @show_value
+          value_label_data << {
+            x_offset: new_x + @value_label_x,
+            y_offset: new_y + @value_label_y,
+            data_point: @data[row_index][DATA_VALUES_INDEX][index]
+          }
+        end
 
         prev_x, prev_y = new_x, new_y
       end
     end
 
     @d.draw(@base_image)
+
+    value_label_data.each do |d|
+      draw_line_value_label(d[:x_offset], d[:y_offset], d[:data_point], @value_font_color)
+    end
   end
 
   def setup_data
@@ -337,4 +351,25 @@ class Gruff::Line < Gruff::Base
     one_point
   end
 
+  def draw_line_value_label(x_offset, y_offset, data_point, value_font_color)
+    @d.fill = value_font_color
+    @d.font = @font if @font
+    @d.stroke('transparent')
+    @d.font_weight = NormalWeight
+    @d.pointsize = scale_fontsize(@marker_font_size)
+    @d.gravity = NorthGravity
+    @d = @d.annotate_scaled(@base_image,
+                            1.0, 1.0,
+                            x_offset, y_offset,
+                            data_point.to_s, @scale)
+  end
+
+  def draw_reference_line_value_label(reference_line)
+    y = reference_line[:value_y] || -20
+    x = reference_line[:value_x] || -10
+    y_offset = @graph_top + (@graph_height - reference_line[:norm_value] * @graph_height) + y
+    x_offset = @graph_left + @graph_width + x
+    color = reference_line[:color] || @reference_line_default_color
+    draw_line_value_label(x_offset, y_offset, reference_line[:value], color)
+  end
 end
