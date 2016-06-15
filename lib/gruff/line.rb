@@ -375,6 +375,8 @@ class Gruff::Line < Gruff::Base
   end
 
   def draw_reference_line_value_label(reference_line)
+    return unless reference_line[:value]
+
     y = reference_line[:value_y] || -20
     x = reference_line[:value_x] || -10
     y_offset = @graph_top + (@graph_height - reference_line[:norm_value] * @graph_height) + y
