@@ -82,7 +82,8 @@ module Gruff
     # A label for the left side of the graph
     attr_accessor :y_axis_label
 
-    # attr_accessor :x_axis_increment
+    # Manually set increment of the vertical marking lines
+    attr_accessor :x_axis_increment
 
     # Manually set increment of the horizontal marking lines
     attr_accessor :y_axis_increment
@@ -116,6 +117,12 @@ module Gruff
     # The font= method below fulfills the role of the writer, so we only need
     # a reader here.
     attr_reader :font
+
+    # Same as font but for the title.
+    attr_accessor :title_font
+    
+    # Specifies whether to draw the title bolded or not.
+    attr_accessor :bold_title
 
     attr_accessor :font_color
 
@@ -236,19 +243,24 @@ module Gruff
       @raw_columns = 800.0
       @raw_rows = 800.0 * (@rows/@columns)
       @column_count = 0
+      @data = Array.new
       @marker_count = nil
       @maximum_value = @minimum_value = nil
       @has_data = false
-      @data = Array.new
+      @increment = nil
       @labels = Hash.new
+      @label_formatting = nil
       @labels_seen = Hash.new
       @sort = false
+      @sorted_drawing = false
       @title = nil
+      @title_font = nil
 
       @scale = @columns / @raw_columns
 
       vera_font_path = File.expand_path('Vera.ttf', ENV['MAGICK_FONT_PATH'])
-      @font = File.exists?(vera_font_path) ? vera_font_path : nil
+      @font = File.exist?(vera_font_path) ? vera_font_path : nil
+      @bold_title = true
 
       @marker_font_size = 21.0
       @legend_font_size = 20.0
@@ -273,6 +285,8 @@ module Gruff
       @additional_line_colors = []
       @theme_options = {}
 
+      @use_data_label = false
+      @x_axis_increment = nil
       @x_axis_label = @y_axis_label = nil
       @y_axis_increment = nil
       @stacked = nil
@@ -808,10 +822,10 @@ module Gruff
       return if (@hide_title || @title.nil?)
 
       @d.fill = @font_color
-      @d.font = @font if @font
+      @d.font = @title_font || @font if @title_font || @font
       @d.stroke('transparent')
       @d.pointsize = scale_fontsize(@title_font_size)
-      @d.font_weight = BoldWeight
+      @d.font_weight = if @bold_title then BoldWeight else NormalWeight end
       @d.gravity = NorthGravity
       @d = @d.annotate_scaled(@base_image,
                               @raw_columns, 1.0,
@@ -833,7 +847,7 @@ module Gruff
         # TODO: See if index.odd? is the best stragegy
         y_offset += @label_stagger_height if index.odd?
 
-        label_text = @labels[index]
+        label_text = labels[index].to_s
 
         # TESTME
         # FIXME: Consider chart types other than bar

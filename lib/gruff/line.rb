@@ -19,11 +19,14 @@ class Gruff::Line < Gruff::Base
   attr_accessor :reference_line_default_width
 
   # Allow for vertical marker lines
-  attr_accessor :show_verical_markers
+  attr_accessor :show_vertical_markers
 
   # Dimensions of lines and dots; calculated based on dataset size if left unspecified
   attr_accessor :line_width
   attr_accessor :dot_radius
+
+  # default is a circle, other options include square
+  attr_accessor :dot_style
 
   # Hide parts of the graph to fit more datapoints, or for a different appearance.
   attr_accessor :hide_dots, :hide_lines
@@ -90,6 +93,10 @@ class Gruff::Line < Gruff::Base
     @hide_dots = @hide_lines = false
     @maximum_x_value = nil
     @minimum_x_value = nil
+
+    @dot_style = 'circle'
+
+    @show_vertical_markers = false
 
     @show_value = false
     @value_label_x = 10.0
@@ -181,7 +188,7 @@ class Gruff::Line < Gruff::Base
 
   def draw_vertical_reference_line(reference_line)
     index = @graph_left + (@x_increment * reference_line[:index])
-    draw_reference_line(reference_line, index, index, @graph_top, @graph_top + graph_height)
+    draw_reference_line(reference_line, index, index, @graph_top, @graph_top + @graph_height)
   end
 
   def draw
@@ -198,7 +205,7 @@ class Gruff::Line < Gruff::Base
       draw_vertical_reference_line(curr_reference_line) if curr_reference_line.key?(:index)
     end
 
-    if (@show_verical_markers)
+    if (@show_vertical_markers)
       (0..@column_count).each do |column|
         x = @graph_left + @graph_width - column.to_f * @x_increment
 
@@ -227,10 +234,6 @@ class Gruff::Line < Gruff::Base
       @one_point = contains_one_point_only?(data_row)
 
       data_row[DATA_VALUES_INDEX].each_with_index do |data_point, index|
-        unless data_point
-          prev_x = prev_y = nil
-          next
-        end
         x_data = data_row[DATA_VALUES_X_INDEX]
         if x_data == nil
           #use the old method: equally spaced points along the x-axis
@@ -241,6 +244,10 @@ class Gruff::Line < Gruff::Base
           @labels.each do |label_pos, _|
             draw_label(@graph_left + ((label_pos - @minimum_x_value) * @graph_width) / (@maximum_x_value - @minimum_x_value), label_pos)
           end
+        end
+        unless data_point # we can't draw a line for a null data point, we can still label the axis though
+          prev_x = prev_y = nil
+          next
         end
 
         new_y = @graph_top + (@graph_height - data_point * @graph_height)
@@ -259,9 +266,12 @@ class Gruff::Line < Gruff::Base
           @d = @d.line(prev_x, prev_y, new_x, new_y)
         elsif @one_point
           # Show a circle if there's just one_point
-          @d = @d.circle(new_x, new_y, new_x - circle_radius, new_y)
+          @d = DotRenderers.renderer(@dot_style).render(@d, new_x, new_y, circle_radius)
         end
-        @d = @d.circle(new_x, new_y, new_x - circle_radius, new_y) unless @hide_dots
+
+        unless @hide_dots
+          @d = DotRenderers.renderer(@dot_style).render(@d, new_x, new_y, circle_radius)
+        end
 
         if  @show_value
           value_label_data << {
@@ -371,5 +381,32 @@ class Gruff::Line < Gruff::Base
     x_offset = @graph_left + @graph_width + x
     color = reference_line[:color] || @reference_line_default_color
     draw_line_value_label(x_offset, y_offset, reference_line[:value], color)
+  end
+
+  module DotRenderers
+    class Circle
+      def render(d, new_x, new_y, circle_radius)
+        d.circle(new_x, new_y, new_x - circle_radius, new_y)
+      end
+    end
+
+    class Square
+      def render(d, new_x, new_y, circle_radius)
+        offset = (circle_radius * 0.8).to_i
+        corner_1 = new_x - offset
+        corner_2 = new_y - offset
+        corner_3 = new_x + offset
+        corner_4 = new_y + offset
+        d.rectangle(corner_1, corner_2, corner_3, corner_4)
+      end
+    end
+
+    def self.renderer(style)
+      if style.to_s == 'square'
+        Square.new
+      else
+        Circle.new
+      end
+    end
   end
 end

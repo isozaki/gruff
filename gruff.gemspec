@@ -15,15 +15,18 @@ Gem::Specification.new do |s|
   s.homepage = %q{https://github.com/topfunky/gruff}
   s.require_paths = %w(lib)
   s.summary = %q{Beautiful graphs for one or multiple datasets.}
+  s.license = 'MIT'
   s.test_files = s.files.grep(%r{^(test|spec|features)/})
   s.executables = s.files.grep(%r{^bin/}).map { |f| File.basename(f) }
   s.specification_version = Gem::Specification::CURRENT_SPECIFICATION_VERSION
+  s.required_ruby_version = ['>= 1.9.3', '< 3']
+
   if defined? JRUBY_VERSION
     s.platform = 'java'
-    s.add_dependency 'rmagick4j'
+    s.add_dependency 'rmagick4j', '~> 0.3', '>= 0.3.9'
   else
-    s.add_dependency 'rmagick'
+    s.add_dependency 'rmagick', '~> 2.13', '>= 2.13.4'
   end
   s.add_development_dependency('rake')
-  s.license = 'MIT'
+  s.add_development_dependency('minitest-reporters')
 end
