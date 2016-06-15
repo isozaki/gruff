@@ -6,6 +6,6 @@
 .yardoc
 Gemfile.lock
 .ruby-gemset
-/test/output
-/test/output_java
+/test/output/
+/test/output_java/
 .ruby-version
